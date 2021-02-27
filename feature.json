@@ -1,9 +1,8 @@
     {
     "type": "Feature",
     "properties": {
-        "name": "Coors Field",
-        "amenity": "Baseball Stadium",
-        "popupContent": "This is where the Rockies play!"
+        "name": "Vuelta en Barcelona",
+        "sport": "HIKING"
     },
     "geometry": {
         "type": "LineString",
