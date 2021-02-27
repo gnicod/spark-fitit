@@ -3,23 +3,27 @@
  */
 package fitit;
 import com.garmin.fit.*;
-import com.github.filosganga.geogson.gson.FeatureAdapter;
 import com.github.filosganga.geogson.gson.GeometryAdapterFactory;
 import com.github.filosganga.geogson.model.Coordinates;
 import com.github.filosganga.geogson.model.Feature;
 import com.github.filosganga.geogson.model.Geometry;
-import com.github.filosganga.geogson.model.LineString;
 import com.github.filosganga.geogson.model.positions.LinearPositions;
-import com.github.filosganga.geogson.model.positions.Positions;
 import com.github.filosganga.geogson.model.positions.SinglePosition;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import spark.Request;
+import spark.Response;
+
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+
 import static spark.Spark.*;
 
 public class App {
 
-    public static String getGreeting(Request request) {
+    public static Object getGreeting(Request request, Response response) {
         Gson gson = new GsonBuilder()
                 .registerTypeAdapterFactory(new GeometryAdapterFactory())
                 .create();
@@ -36,10 +40,11 @@ public class App {
                 .fromJson(gsjon, LineString.class);
          */
         Geometry geometry = feature.geometry();
-        FileEncoder encode;
+        BufferEncoder encode;
 
         try {
-            encode = new FileEncoder(new java.io.File("ExampleCourse.fit"), Fit.ProtocolVersion.V2_0);
+            OutputStream out = new ByteArrayOutputStream();
+            encode = new BufferEncoder(Fit.ProtocolVersion.V2_0);
         } catch (FitRuntimeException e) {
             System.err.println("Error opening file ExampleActivity.fit");
             return "error";
@@ -80,17 +85,19 @@ public class App {
             encode.write(cp);
         }
         try {
-            encode.close();
-        } catch (FitRuntimeException e) {
+            HttpServletResponse raw = response.raw();
+            raw.getOutputStream().write(encode.close());
+            raw.getOutputStream().flush();
+            raw.getOutputStream().close();
+            return response.raw();
+        } catch (FitRuntimeException | IOException e) {
             System.err.println("Error closing encode.");
             return "error";
         }
 
-        System.out.println("Encoded FIT file ExampleActivity.fit.");
-        return "Hello World!";
     }
 
     public static void main(String[] args) {
-        post("/", (req, res) -> getGreeting(req));
+        post("/", (req, res) -> getGreeting(req, res));
     }
 }
