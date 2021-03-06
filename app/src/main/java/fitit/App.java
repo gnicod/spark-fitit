@@ -82,13 +82,33 @@ public class App {
 
         encode.write(courseMesg);
         LinearPositions lp = (LinearPositions) geometry.positions();
+
+        LapMesg lapMesg = new LapMesg();
+
+        int i = 0;
         for (SinglePosition sp : lp.children()){
-            CoursePointMesg cp = new CoursePointMesg();
+            i ++;
+            RecordMesg cp = new RecordMesg();
             Coordinates coordinates = sp.coordinates();
-            cp.setPositionLat((int) (coordinates.getLat() * 11930465));
-            cp.setPositionLong((int) (coordinates.getLon() * 11930465));
+            int lat = (int) (coordinates.getLat() * 11930465);
+            int lon = (int) (coordinates.getLon() * 11930465);
+            double double_alt = coordinates.getAlt();
+            if (!Double.isNaN(double_alt)) {
+                cp.setAltitude((float) double_alt);
+            }
+            cp.setPositionLat(lat);
+            cp.setPositionLong(lon);
             encode.write(cp);
+            if (i == 1) {
+                lapMesg.setStartPositionLat(lat);
+                lapMesg.setStartPositionLong(lon);
+            }
+            if (i == lp.size()) {
+                lapMesg.setEndPositionLat(lat);
+                lapMesg.setEndPositionLong(lon);
+            }
         }
+        encode.write(lapMesg);
         try {
             HttpServletResponse raw = response.raw();
             raw.getOutputStream().write(encode.close());
