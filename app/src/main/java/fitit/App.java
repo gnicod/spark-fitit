@@ -19,9 +19,10 @@ import spark.Response;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Map;
 
-import static spark.Spark.internalServerError;
 import static spark.Spark.post;
 
 public class App {
@@ -60,7 +61,7 @@ public class App {
         for (int i = 0; i < appId.length; i++) {
             developerIdMesg.setApplicationId(i, appId[i]);
         }
-        developerIdMesg.setDeveloperDataIndex((short)0);
+        developerIdMesg.setDeveloperDataIndex((short) 0);
         encode.write(developerIdMesg);
 
         Map<String, JsonElement> properties = feature.properties();
@@ -86,8 +87,13 @@ public class App {
         LapMesg lapMesg = new LapMesg();
 
         int i = 0;
-        for (SinglePosition sp : lp.children()){
-            i ++;
+        long ms = System.currentTimeMillis();
+        java.util.Calendar systemCurrentTime = Calendar.getInstance();
+        Date t = systemCurrentTime.getTime();
+
+        for (SinglePosition sp : lp.children()) {
+            i++;
+            systemCurrentTime.add(Calendar.MINUTE, 1); // Add an hour to our contrived timestamp
             RecordMesg cp = new RecordMesg();
             Coordinates coordinates = sp.coordinates();
             int lat = (int) (coordinates.getLat() * 11930465);
@@ -98,12 +104,26 @@ public class App {
             }
             cp.setPositionLat(lat);
             cp.setPositionLong(lon);
+            DateTime dt = new DateTime(systemCurrentTime.getTime());
+            cp.setTimestamp(dt);
             encode.write(cp);
             if (i == 1) {
+                EventMesg e = new EventMesg();
+                e.setEvent(Event.TIMER);
+                e.setEventGroup((short) 0);
+                e.setEventType(EventType.START);
+                e.setTimestamp(dt);
+                encode.write(e);
                 lapMesg.setStartPositionLat(lat);
                 lapMesg.setStartPositionLong(lon);
             }
             if (i == lp.size()) {
+                EventMesg e = new EventMesg();
+                e.setEvent(Event.TIMER);
+                e.setEventGroup((short) 0);
+                e.setEventType(EventType.STOP_DISABLE_ALL);
+                e.setTimestamp(dt);
+                encode.write(e);
                 lapMesg.setEndPositionLat(lat);
                 lapMesg.setEndPositionLong(lon);
             }
