@@ -19,6 +19,7 @@ import spark.Response;
 
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.Map;
@@ -91,6 +92,9 @@ public class App {
         java.util.Calendar systemCurrentTime = Calendar.getInstance();
         Date t = systemCurrentTime.getTime();
 
+        ArrayList<RecordMesg> recordMesgs = new ArrayList<>();
+        ArrayList<EventMesg> eventMesgs = new ArrayList<>();
+
         for (SinglePosition sp : lp.children()) {
             i++;
             systemCurrentTime.add(Calendar.MINUTE, 1); // Add an hour to our contrived timestamp
@@ -106,14 +110,16 @@ public class App {
             cp.setPositionLong(lon);
             DateTime dt = new DateTime(systemCurrentTime.getTime());
             cp.setTimestamp(dt);
-            encode.write(cp);
+            //encode.write(cp);
+            recordMesgs.add(cp);
             if (i == 1) {
                 EventMesg e = new EventMesg();
                 e.setEvent(Event.TIMER);
                 e.setEventGroup((short) 0);
                 e.setEventType(EventType.START);
                 e.setTimestamp(dt);
-                encode.write(e);
+                eventMesgs.add(e);
+                //encode.write(e);
                 lapMesg.setStartPositionLat(lat);
                 lapMesg.setStartPositionLong(lon);
             }
@@ -123,12 +129,20 @@ public class App {
                 e.setEventGroup((short) 0);
                 e.setEventType(EventType.STOP_DISABLE_ALL);
                 e.setTimestamp(dt);
-                encode.write(e);
+                eventMesgs.add(e);
+                //encode.write(e);
                 lapMesg.setEndPositionLat(lat);
                 lapMesg.setEndPositionLong(lon);
             }
         }
+
         encode.write(lapMesg);
+        for (EventMesg e : eventMesgs) {
+            encode.write(e);
+        }
+        for (RecordMesg r : recordMesgs) {
+            encode.write(r);
+        }
         try {
             HttpServletResponse raw = response.raw();
             raw.getOutputStream().write(encode.close());
